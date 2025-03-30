@@ -10,11 +10,10 @@ namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService, ITokenManager tokenManager, UserManager<AppUser> userManager) : ControllerBase
+    public class AuthController(IAuthService authService)
+        : ControllerBase
     {
-        private readonly UserManager<AppUser> _userManager = userManager;
         private readonly IAuthService _authService = authService;
-        private readonly ITokenManager _tokenManager = tokenManager;
 
         [HttpPost]
         [Route("signup")]
@@ -28,34 +27,29 @@ namespace WebApi.Controllers
             {
                 return Ok();
             }
-
-            return BadRequest();
+            else
+            {
+                return BadRequest();
+            }
         }
 
         [HttpPost]
         [Route("signin")]
         public async Task<IActionResult> SignInAsync(SignInForm form)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return BadRequest(form);
+
+            var result = await _authService.SignInAsync(form);
+            if (result.Succeeded)
             {
-                var result = await _authService.SignInAsync(form);
-                if (result.Succeeded)
-                {
-                    var user = await _userManager.FindByEmailAsync(form.Email);
-
-                    var claims = new List<Claim>
-                {
-                    new(JwtRegisteredClaimNames.Sub, user!.Id),
-                    new(JwtRegisteredClaimNames.Name, user.UserName!),
-                    new(JwtRegisteredClaimNames.Email, user.Email!)
-                };
-
-                    var token = _tokenManager.GenerateJwtToken(claims);
-                    return Ok(new { token });
-                }
+                // Message innehåller token som string
+                return Ok(result.Message);
             }
-
-            return Unauthorized("Invalid email or password");
+            else
+            {
+                return BadRequest();
+            }
         }
     }
 }

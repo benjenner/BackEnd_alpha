@@ -1,14 +1,12 @@
 ﻿using Business.Factories;
+using Business.Interfaces;
 using Data.Interfaces;
 using Data.Repositories;
 using Domain.Models;
 
-// Här sker mappning så vi kan hämta ut satliga statusdelar.
-// Ska generera dropdown med värden
 namespace Business.Services
 {
-    // Jobbar mot interface i konstruktorn
-    public class StatusService(IStatusRepository statusRepository)
+    public class StatusService(IStatusRepository statusRepository) : IStatusService
     {
         private readonly IStatusRepository _statusRepository = statusRepository;
 

@@ -7,4 +7,6 @@ namespace Authentication.Contexts;
 public class AuthContext(DbContextOptions<AuthContext> options) : IdentityDbContext<AppUser>(options)
 {
     public DbSet<AppUserAddress> UserAddresses { get; set; }
+
+    // DbSet för AppUser finns "gömt" då IdentityDbContext instansieras med AppUser
 }

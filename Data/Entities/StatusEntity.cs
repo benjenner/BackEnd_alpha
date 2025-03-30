@@ -12,5 +12,7 @@ namespace Data.Entities
 
         [Required]
         public string StatusName { get; set; } = null!;
+
+        public virtual ICollection<ProjectEntity>? Projects { get; set; }
     }
 }
