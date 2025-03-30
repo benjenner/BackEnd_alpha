@@ -19,6 +19,8 @@ public class ClientEntity
     public virtual ClientContactInformationEntity ClientContactInformation { get; set; } = null!;
 
     public virtual ClientAddressEntity Address { get; set; } = null!;
+
+    public virtual ICollection<ProjectEntity> Projects { get; set; }
 }
 
 // ClientAddressEntity har clientId och en referens till ClientEntity

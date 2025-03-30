@@ -1,4 +1,5 @@
 ﻿using Authentication.Models;
+using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
@@ -10,8 +11,8 @@ namespace Authentication.Interfaces
 {
     public interface IAuthService
     {
-        Task<SignInResult> SignInAsync(SignInForm form);
+        Task<ServiceResult> SignInAsync(SignInForm form);
 
-        Task<IdentityResult> SignUpAsync(SignUpForm form);
+        Task<ServiceResult> SignUpAsync(SignUpForm form);
     }
 }

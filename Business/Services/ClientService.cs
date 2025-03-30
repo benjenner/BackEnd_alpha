@@ -1,44 +1,31 @@
 ﻿using Business.Factories;
-using Data.Entities;
+using Business.Interfaces;
 using Data.Interfaces;
-using Data.Repositories;
 using Domain.Models;
 
 namespace Business.Services;
 
-// Jobbar mot interfaces i konstruktorn
-public class ClientService(IClientRepository clientRepository,
-    IClientContactInformationRepository clientInformationRepository,
-    IClientAddressRepository clientAddressRepository)
+public class ClientService(IClientRepository clientRepository) : IClientService
 {
     private readonly IClientRepository _clientRepository = clientRepository;
-    private readonly IClientContactInformationRepository _clientInformationRepository = clientInformationRepository;
-    private readonly IClientAddressRepository _clientAddressRepository = clientAddressRepository;
 
     public async Task<ServiceResult> CreateAsync(ClientRegistrationForm form)
     {
         if (form == null)
             return ServiceResult.BadRequest();
 
-        if (await _clientRepository.ExistsAsync(x => x.ClientName == form.ClientName))
+        if (await _clientRepository.ExistsAsync(c => c.ClientName == form.ClientName))
             return ServiceResult.AlreadyExists();
 
         try
         {
-            // ***** Skapa upp med factory istället********
-            var clientEntity = new ClientEntity();
+            var clientEntity = ClientFactory.Map(form);
             var result = await _clientRepository.AddAsync(clientEntity);
             if (!result)
                 return ServiceResult.Failed();
 
-            // Skapar kontaktinformation
-            await _clientInformationRepository.AddAsync(clientEntity.ClientContactInformation);
-
-            // Skapar adress
-            await _clientAddressRepository.AddAsync(clientEntity.Address);
-
             // Skickar tillbaka ett true (Succeeded)
-            return ServiceResult.Created();
+            return ServiceResult.Created("Client created");
         }
         catch (Exception ex)
         {
@@ -46,15 +33,89 @@ public class ClientService(IClientRepository clientRepository,
         }
     }
 
-    public async Task<IEnumerable<Client>> GetAllClientsAsync()
+    public async Task<ServiceResult> UpdateAsync(ClientUpdateForm form)
     {
-        // Hämtar samtliga client-entiteter
-        var list = await _clientRepository.GetAllAsync();
-        // listan med entiteter filtreras ut enligt Client-modellen i ClientFactory.
-        var clients = list.Select(ClientFactory.Map);
+        if (form == null)
+            return ServiceResult.BadRequest();
 
-        // Skickar tillbaka listan. Kan/ska man istället returnera ServiceResult?
-        // Här kan man specificera hur listan ska returneras (return list.OrderBy())
+        if (await _clientRepository.ExistsAsync(c => c.Id == form.Id))
+        {
+            try
+            {
+                var clientToUpdate = await _clientRepository.GetAsync(c => c.Id == form.Id);
+                var clientEntity = ClientFactory.Map(form, clientToUpdate);
+
+                var result = await _clientRepository.UpdateAsync(clientEntity);
+                if (!result)
+                    return ServiceResult.Failed();
+
+                // Skickar tillbaka Updated (Succeeded)
+                return ServiceResult.Updated("Client Updated");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Failed(ex.Message);
+            }
+        }
+        else
+        {
+            return ServiceResult.NotFound();
+        }
+    }
+
+    public async Task<ServiceResult> RemoveAsync(int? Id)
+    {
+        if (Id == null)
+            return ServiceResult.BadRequest();
+
+        if (await _clientRepository.ExistsAsync(c => c.Id == Id))
+        {
+            try
+            {
+                var clientEntity = await _clientRepository.GetAsync(c => c.Id == Id);
+
+                var result = await _clientRepository.RemoveAsync(clientEntity);
+                if (!result)
+                    return ServiceResult.Failed();
+
+                return ServiceResult.Ok("Client deleted");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Failed(ex.Message);
+            }
+        }
+        else
+        {
+            return ServiceResult.NotFound();
+        }
+    }
+
+    public async Task<Client?> GetClientByIdAsync(int id)
+    {
+        var entity = await _clientRepository.GetAsync(x => x.Id == id);
+        if (entity == null)
+        {
+            return null;
+        }
+        return ClientFactory.Map(entity);
+    }
+
+    public async Task<Client?> GetClientByNameAsync(string name)
+    {
+        var entity = await _clientRepository.GetAsync(x => x.ClientName == name);
+        return ClientFactory.Map(entity);
+    }
+
+    public async Task<IEnumerable<Client?>> GetAllClientsAsync()
+    {
+        var list = await _clientRepository.GetAllAsync();
+
+        if (list == null)
+        {
+            return null;
+        }
+        var clients = list.Select(ClientFactory.Map);
 
         return clients;
     }

@@ -9,4 +9,6 @@ public class DataContext(DbContextOptions<DataContext> options) : DbContext(opti
     public virtual DbSet<ClientEntity> Clients { get; set; }
     public virtual DbSet<ClientContactInformationEntity> ClientContactInformation { get; set; }
     public virtual DbSet<ClientAddressEntity> ClientAddresses { get; set; }
+
+    public virtual DbSet<ProjectEntity> Projects { get; set; }
 }

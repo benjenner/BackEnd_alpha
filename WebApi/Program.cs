@@ -1,17 +1,22 @@
 // Här skapas webservern
 
 using Authentication.Contexts;
+using Authentication.Handlers;
 using Authentication.Interfaces;
 using Authentication.Models;
 using Authentication.Services;
 using Business.Interfaces;
-using Business.Managers;
 using Business.Services;
 using Data.Contexts;
 using Data.Interfaces;
 using Data.Repositories;
+using Data.Seeders;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,34 +40,68 @@ builder.Services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<A
 // Sätts till scoped då en ny instans ska skapas per HTTP-begäran
 builder.Services.AddScoped<IStatusRepository, StatusRepository>();
 // Registrerar StatusService i DI-containern
-builder.Services.AddScoped<StatusService>();
-
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IStatusService, StatusService>();
+builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClientContactInformationRepository, ClientContactInformationRepository>();
 builder.Services.AddScoped<IClientAddressRepository, ClientAddressRepository>();
-builder.Services.AddScoped<ClientService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddTransient<ITokenManager, TokenManager>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+
+
+builder.Services.AddTransient<JwtTokenHandler>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddAuthentication(x =>
+{
+    // Token-autentiering genom JwtBearerDefaults
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    // Verifierar att token-nyckeln är giltlig
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(x =>
+{
+    var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!);
+
+    var issuer = builder.Configuration["Jwt:Issuer"]!;
+
+    // Sätts till true i produktionsmiljö
+    x.RequireHttpsMetadata = false;
+    // Token sparas i cache-minnet, i princip.
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateLifetime = true,
+        RequireExpirationTime = true,
+        ClockSkew = TimeSpan.FromMinutes(5),
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = false
+    };
+});
+
 var app = builder.Build();
+
+// Här instansieras rollerna?
+await SeedData.SetRolesAsync(app);
+
 app.MapOpenApi();
+
+app.UseSwagger();
+app.UseSwaggerUI(x => x.SwaggerEndpoint("/swagger/v1/swagger.json", "Alpha API"));
+app.UseRewriter(new RewriteOptions().AddRedirect("^$", "swagger"));
 app.UseHttpsRedirection();
 
-//app.UseSwaggerUI(x =>
-//{
-//    x.SwaggerEndpoint("/swagger/v1/swagger.json", "Alpha API");
-//    x.RoutePrefix = string.Empty;
-//});
-
-// Identifierar om en endpoint har en autensiering (visar inte websidan om villkor inte uppfylls)
+// Vad användaren får komma åt
 app.UseAuthorization();
-
+// Vem användaren är (claims osv)
 app.UseAuthentication();
+
 app.MapControllers();
 app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 

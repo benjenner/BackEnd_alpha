@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Authentication.Models
 {
@@ -20,7 +15,10 @@ namespace Authentication.Models
         public string Email { get; set; } = null!;
 
         [Required]
+        [MinLength(8)]
         [RegularExpression("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[\\W_]).{8,}$", ErrorMessage = "Invalid password")]
         public string Password { get; set; } = null!;
+
+        public string? Role { get; set; }
     }
 }

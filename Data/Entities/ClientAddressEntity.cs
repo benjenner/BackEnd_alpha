@@ -9,8 +9,8 @@ public class ClientAddressEntity
 
     public virtual ClientEntity Client { get; set; } = null!;
 
-    public string StreetName { get; set; } = null!;
-    public string? StreetNumber { get; set; }
+    public string BillingAddress { get; set; } = null!;
+
     public string PostalCode { get; set; } = null!;
     public string City { get; set; } = null!;
 }

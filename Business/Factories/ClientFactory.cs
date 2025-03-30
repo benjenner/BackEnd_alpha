@@ -5,7 +5,6 @@ namespace Business.Factories
 {
     public class ClientFactory
     {
-        // Mappas enligt Client(modell)
         public static Client Map(ClientEntity entity)
         {
             if (entity == null)
@@ -28,14 +27,64 @@ namespace Business.Factories
                 },
                 ClientAddress = new ClientAddress
                 {
-                    StreetName = entity?.Address.StreetName,
-                    StreetNumber = entity?.Address.StreetNumber,
+                    BillingAddress = entity.Address.BillingAddress,
                     PostalCode = entity?.Address.PostalCode,
                     City = entity?.Address.City,
                 },
             };
 
             return client;
+        }
+
+        public static ClientEntity Map(ClientRegistrationForm form)
+        {
+            if (form == null)
+            {
+                return null;
+            }
+            // Här instansieras en Client enligt modellen
+            var clientEntity = new ClientEntity
+            {
+                ClientName = form.ClientName,
+                Created = DateTime.UtcNow,
+                Modified = DateTime.UtcNow,
+                IsActive = true,
+                ClientContactInformation = new ClientContactInformationEntity
+                {
+                    Email = form.Email,
+                    Phone = form?.Phone,
+                    Reference = form?.Reference,
+                },
+                Address = new ClientAddressEntity
+                {
+                    BillingAddress = form.BillingAddress,
+                    PostalCode = form.PostalCode,
+                    City = form.City,
+                },
+            };
+
+            return clientEntity;
+        }
+
+        public static ClientEntity Map(ClientUpdateForm form, ClientEntity entity)
+        {
+            if (form == null || entity == null)
+            {
+                return null;
+            }
+
+            entity.ClientName = form.ClientName;
+            entity.Modified = DateTime.UtcNow;
+
+            entity.ClientContactInformation.Email = form.Email;
+            entity.ClientContactInformation.Phone = form.Phone;
+            entity.ClientContactInformation.Reference = form.Reference;
+
+            entity.Address.BillingAddress = form.BillingAddress;
+            entity.Address.PostalCode = form.PostalCode;
+            entity.Address.City = form.City;
+
+            return entity;
         }
     }
 }

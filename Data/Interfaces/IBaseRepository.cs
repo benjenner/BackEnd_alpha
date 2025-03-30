@@ -29,4 +29,9 @@ public interface IBaseRepository<TEntity> where TEntity : class
     Task<bool> RemoveAsync(TEntity entity);
 
     Task<bool> UpdateAsync(TEntity entity);
+
+    Task<IEnumerable<TEntity>> GetAllAsync(bool orderByDescending = false,
+                                Expression<Func<TEntity, object>>? sortBy = null,
+                                Expression<Func<TEntity, bool>>? filterBy = null,
+                                params Expression<Func<TEntity, object>>[] includes);
 }
