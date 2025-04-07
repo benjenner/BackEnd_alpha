@@ -19,6 +19,8 @@ namespace Domain.Models
         public DateTime? EndDate { get; set; }
         public decimal? Budget { get; set; }
 
+        public virtual DateTime Created { get; set; }
+
         // Implementerar Client- och Statusmodell
         public Client Client { get; set; } = null!;
 

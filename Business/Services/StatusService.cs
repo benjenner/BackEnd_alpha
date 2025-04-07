@@ -1,23 +1,30 @@
 ﻿using Business.Factories;
 using Business.Interfaces;
 using Data.Interfaces;
-using Data.Repositories;
 using Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Business.Services
 {
-    public class StatusService(IStatusRepository statusRepository) : IStatusService
+    public class StatusService(IStatusRepository statusRepository, IMemoryCache cache) : IStatusService
     {
         private readonly IStatusRepository _statusRepository = statusRepository;
+        private readonly IMemoryCache _cache = cache;
+        private const string _cacheKey_All = "Status_All";
 
         public async Task<IEnumerable<Status>> GetProjectStatuses()
         {
-            var list = await _statusRepository.GetAllAsync(
+            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Status>? cachedItems))
+            {
+                return cachedItems;
+            }
 
-                selector: x => StatusFactory.Map(x)!
+            _cache.Remove(_cacheKey_All);
+            var entities = await _statusRepository.GetAllAsync();
 
-                );
-            return list;
+            var statuses = entities.Select(StatusFactory.Map);
+            _cache.Set(_cacheKey_All, statuses, TimeSpan.FromMinutes(10));
+            return statuses;
         }
     }
 }

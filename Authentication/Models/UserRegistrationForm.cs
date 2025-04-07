@@ -2,7 +2,7 @@
 
 namespace Authentication.Models
 {
-    public class SignUpForm
+    public class UserRegistrationForm
     {
         [Required]
         public string FirstName { get; set; } = null!;
@@ -18,7 +18,5 @@ namespace Authentication.Models
         [MinLength(8)]
         [RegularExpression("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[\\W_]).{8,}$", ErrorMessage = "Invalid password")]
         public string Password { get; set; } = null!;
-
-        public string? Role { get; set; }
     }
 }

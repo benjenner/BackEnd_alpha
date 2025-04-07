@@ -1,20 +1,27 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Authentication.Models
 {
-    // Ärver från Identity som innehåller properties som Username, Password osv.
-    public class AppUser : IdentityUser
+    public class AppUser
     {
-        // Id genereras automatiskt av guid (textsträng istället för int)
+        public string Id { get; set; } = null!;
 
-        [ProtectedPersonalData]
+        public string Email { get; set; } = null!;
+
         public string? FirstName { get; set; }
 
-        [ProtectedPersonalData]
         public string? LastName { get; set; }
 
         public string? JobTitle { get; set; }
 
-        public AppUserAddress? Address { get; set; }
+        public string? PhoneNumber { get; set; }
+
+        public string? Role { get; set; }
+
+        public string? Address { get; set; }
+
+        public string? PostalCode { get; set; }
+
+        public string? City { get; set; }
     }
 }

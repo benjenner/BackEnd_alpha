@@ -1,12 +1,10 @@
-﻿using Authentication.Models;
+﻿using Authentication.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Authentication.Contexts;
 
-public class AuthContext(DbContextOptions<AuthContext> options) : IdentityDbContext<AppUser>(options)
+public class AuthContext(DbContextOptions<AuthContext> options) : IdentityDbContext<AppUserEntity>(options)
 {
-    public DbSet<AppUserAddress> UserAddresses { get; set; }
-
-    // DbSet för AppUser finns "gömt" då IdentityDbContext instansieras med AppUser
+    public DbSet<AppUserAddressEntity> UserAddresses { get; set; }
 }

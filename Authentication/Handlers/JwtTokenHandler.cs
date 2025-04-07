@@ -1,4 +1,5 @@
-﻿using Authentication.Models;
+﻿using Authentication.Entities;
+using Authentication.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -36,7 +37,7 @@ public class JwtTokenHandler
 
     // ** var tokenHandler ** sätts till JwtSecurityTokenHandler.
     // ** var token ** här
-    public string GenerateToken(AppUser appUser, string? role = null)
+    public string GenerateToken(AppUserEntity appUser, string? role = null)
     {
         try
         {

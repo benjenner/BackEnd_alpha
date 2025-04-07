@@ -2,12 +2,15 @@
 using Business.Interfaces;
 using Data.Interfaces;
 using Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Business.Services
 {
-    public class ProjectService(IProjectRepository projectRepository) : IProjectService
+    public class ProjectService(IProjectRepository projectRepository, IMemoryCache cache) : IProjectService
     {
         private readonly IProjectRepository _projectRepository = projectRepository;
+        private readonly IMemoryCache _cache = cache;
+        private const string _cacheKey_All = "Project_All";
 
         public async Task<ServiceResult> CreateAsync(ProjectRegistrationForm form)
         {
@@ -22,9 +25,11 @@ namespace Business.Services
                 var projectEntity = ProjectFactory.Map(form);
                 var result = await _projectRepository.AddAsync(projectEntity);
                 if (!result)
+                {
                     return ServiceResult.Failed();
+                }
 
-                // Skickar tillbaka ett true (Succeeded)
+                _cache.Remove(_cacheKey_All);
                 return ServiceResult.Created("Project created");
             }
             catch (Exception ex)
@@ -47,7 +52,11 @@ namespace Business.Services
 
                     var result = await _projectRepository.UpdateAsync(projectEntity);
                     if (!result)
+                    {
                         return ServiceResult.Failed();
+                    }
+
+                    _cache.Remove(_cacheKey_All);
 
                     // Skickar tillbaka Updated (Succeeded)
                     return ServiceResult.Updated("Project Updated");
@@ -66,7 +75,9 @@ namespace Business.Services
         public async Task<ServiceResult> RemoveAsync(int? Id)
         {
             if (Id == null)
+            {
                 return ServiceResult.BadRequest();
+            }
 
             if (await _projectRepository.ExistsAsync(p => p.Id == Id))
             {
@@ -76,8 +87,11 @@ namespace Business.Services
 
                     var result = await _projectRepository.RemoveAsync(projectEntity);
                     if (!result)
+                    {
                         return ServiceResult.Failed();
+                    }
 
+                    _cache.Remove(_cacheKey_All);
                     return ServiceResult.Ok("Project deleted");
                 }
                 catch (Exception ex)
@@ -93,32 +107,78 @@ namespace Business.Services
 
         public async Task<IEnumerable<Project>> GetProjectsAsync()
         {
-            var entites = await _projectRepository.GetAllAsync(
-                orderByDescending: true,
-                sortBy: x => x.Created,
-                filterBy: null,
-                i => i.Client,
-                i => i.Status
-            );
+            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Project>? cachedItems))
+            {
+                return cachedItems;
+            }
 
-            var projects = entites.Select(ProjectFactory.Map);
+            _cache.Remove(_cacheKey_All);
+            var entities = await _projectRepository.GetAllAsync(
+               orderByDescending: true,
+               sortBy: x => x.Created,
+               filterBy: null,
+                i => i.Client,
+                i => i.Client.Address,
+                i => i.Client.ClientContactInformation,
+                i => i.Status
+           );
+
+            var projects = entities.Select(ProjectFactory.Map);
+            _cache.Set(_cacheKey_All, projects, TimeSpan.FromMinutes(10));
+
             return projects;
         }
 
         public async Task<Project?> GetProjectByIdAsync(int id)
         {
-            var entity = await _projectRepository.GetAsync(x => x.Id == id);
-            if (entity == null)
+            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Project>? cachedItems))
             {
-                return null;
+                Project project = cachedItems?.FirstOrDefault(x => x.Id == id);
+                if (project != null)
+                    return project;
             }
-            return ProjectFactory.Map(entity);
+
+            _cache.Remove(_cacheKey_All);
+            var entities = await _projectRepository.GetAllAsync(
+               orderByDescending: true,
+               sortBy: x => x.Created,
+               filterBy: null,
+                i => i.Client,
+                i => i.Client.Address,
+                i => i.Client.ClientContactInformation,
+                i => i.Status
+           );
+
+            var projects = entities.Select(ProjectFactory.Map);
+            _cache.Set(_cacheKey_All, projects, TimeSpan.FromMinutes(10));
+
+            return projects.SingleOrDefault(x => x.Id == id);
         }
 
         public async Task<Project?> GetProjectByNameAsync(string name)
         {
-            var entity = await _projectRepository.GetAsync(p => p.ProjectName == name);
-            return ProjectFactory.Map(entity);
+            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Project>? cachedItems))
+            {
+                Project project = cachedItems?.FirstOrDefault(x => x.ProjectName.ToLower() == name.ToLower());
+                if (project != null)
+                    return project;
+            }
+
+            _cache.Remove(_cacheKey_All);
+            var entities = await _projectRepository.GetAllAsync(
+               orderByDescending: true,
+               sortBy: x => x.Created,
+               filterBy: null,
+                i => i.Client,
+                i => i.Client.Address,
+                i => i.Client.ClientContactInformation,
+                i => i.Status
+           );
+
+            var projects = entities.Select(ProjectFactory.Map);
+            _cache.Set(_cacheKey_All, projects, TimeSpan.FromMinutes(10));
+
+            return projects.SingleOrDefault(x => x.ProjectName.ToLower() == name.ToLower());
         }
     }
 }
