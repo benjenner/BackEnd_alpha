@@ -12,26 +12,24 @@ public interface IBaseRepository<TEntity> where TEntity : class
     // Se BaseRepository för implementingarna
     Task<bool> AddAsync(TEntity entity);
 
-    Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> expression);
-
-    Task<IEnumerable<TEntity>> GetAllAsync();
-
-    Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>> expression);
-
-    Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> expression);
-
-    Task<T?> GetAsync<T>(Expression<Func<TEntity, bool>> expression, Expression<Func<TEntity, T>> selector);
-
-    Task<IEnumerable<T>> GetAllAsync<T>(Expression<Func<TEntity, bool>> expression, Expression<Func<TEntity, T>> selector);
-
-    Task<IEnumerable<T>> GetAllAsync<T>(Expression<Func<TEntity, T>> selector);
-
     Task<bool> RemoveAsync(TEntity entity);
 
     Task<bool> UpdateAsync(TEntity entity);
 
+    Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> expression);
+
+    //Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> expression);
+
+    Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> findBy,
+                                           params Expression<Func<TEntity, object>>[] includes);
+
+    //Task<IEnumerable<TEntity>> GetAllAsync(bool orderByDescending = false,
+    //                            Expression<Func<TEntity, object>>? sortBy = null,
+    //                            Expression<Func<TEntity, bool>>? filterBy = null,
+    //                            params Expression<Func<TEntity, object>>[] includes);
+
     Task<IEnumerable<TEntity>> GetAllAsync(bool orderByDescending = false,
-                                Expression<Func<TEntity, object>>? sortBy = null,
-                                Expression<Func<TEntity, bool>>? filterBy = null,
-                                params Expression<Func<TEntity, object>>[] includes);
+                                      Expression<Func<TEntity, object>>? sortBy = null,
+                                      Expression<Func<TEntity, bool>>? filterBy = null,
+                                      params Expression<Func<TEntity, object>>[] includes);
 }

@@ -27,6 +27,7 @@ namespace Business.Factories
                 EndDate = entity.EndDate,
                 Budget = entity.Budget,
                 UserId = entity.UserId,
+                Created = entity.Created,
                 Client = new Client
                 {
                     Id = entity.Client.Id,

@@ -1,13 +1,17 @@
 ﻿using Business.Factories;
 using Business.Interfaces;
 using Data.Interfaces;
+using Data.Repositories;
 using Domain.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Business.Services;
 
-public class ClientService(IClientRepository clientRepository) : IClientService
+public class ClientService(IClientRepository clientRepository, IMemoryCache cache) : IClientService
 {
     private readonly IClientRepository _clientRepository = clientRepository;
+    private readonly IMemoryCache _cache = cache;
+    private const string _cacheKey_All = "Client_All";
 
     public async Task<ServiceResult> CreateAsync(ClientRegistrationForm form)
     {
@@ -22,7 +26,10 @@ public class ClientService(IClientRepository clientRepository) : IClientService
             var clientEntity = ClientFactory.Map(form);
             var result = await _clientRepository.AddAsync(clientEntity);
             if (!result)
+            {
                 return ServiceResult.Failed();
+            }
+            _cache.Remove(_cacheKey_All);
 
             // Skickar tillbaka ett true (Succeeded)
             return ServiceResult.Created("Client created");
@@ -47,8 +54,11 @@ public class ClientService(IClientRepository clientRepository) : IClientService
 
                 var result = await _clientRepository.UpdateAsync(clientEntity);
                 if (!result)
+                {
                     return ServiceResult.Failed();
+                }
 
+                _cache.Remove(_cacheKey_All);
                 // Skickar tillbaka Updated (Succeeded)
                 return ServiceResult.Updated("Client Updated");
             }
@@ -76,8 +86,11 @@ public class ClientService(IClientRepository clientRepository) : IClientService
 
                 var result = await _clientRepository.RemoveAsync(clientEntity);
                 if (!result)
+                {
                     return ServiceResult.Failed();
+                }
 
+                _cache.Remove(_cacheKey_All);
                 return ServiceResult.Ok("Client deleted");
             }
             catch (Exception ex)
@@ -91,32 +104,79 @@ public class ClientService(IClientRepository clientRepository) : IClientService
         }
     }
 
+    public async Task<IEnumerable<Client?>> GetAllClientsAsync()
+    {
+        if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Client>? cachedItems))
+        {
+            return cachedItems;
+        }
+
+        _cache.Remove(_cacheKey_All);
+        var entities = await _clientRepository.GetAllAsync(
+            orderByDescending: false,
+            sortBy: x => x.ClientName,
+            filterBy: null,
+
+            i => i.ClientContactInformation,
+            i => i.Address,
+            i => i.Projects
+        );
+
+        var clients = entities.Select(ClientFactory.Map);
+        _cache.Set(_cacheKey_All, clients, TimeSpan.FromMinutes(10));
+
+        return clients;
+    }
+
     public async Task<Client?> GetClientByIdAsync(int id)
     {
-        var entity = await _clientRepository.GetAsync(x => x.Id == id);
-        if (entity == null)
+        if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Client>? cachedItems))
         {
-            return null;
+            Client client = cachedItems?.FirstOrDefault(x => x.Id == id);
+            if (client != null)
+                return client;
         }
-        return ClientFactory.Map(entity);
+
+        _cache.Remove(_cacheKey_All);
+        var entities = await _clientRepository.GetAllAsync(
+            orderByDescending: false,
+            sortBy: x => x.ClientName,
+            filterBy: null,
+
+            i => i.ClientContactInformation,
+            i => i.Address,
+            i => i.Projects
+        );
+
+        var clients = entities.Select(ClientFactory.Map);
+        _cache.Set(_cacheKey_All, clients, TimeSpan.FromMinutes(10));
+
+        return clients.SingleOrDefault(x => x.Id == id);
     }
 
     public async Task<Client?> GetClientByNameAsync(string name)
     {
-        var entity = await _clientRepository.GetAsync(x => x.ClientName == name);
-        return ClientFactory.Map(entity);
-    }
-
-    public async Task<IEnumerable<Client?>> GetAllClientsAsync()
-    {
-        var list = await _clientRepository.GetAllAsync();
-
-        if (list == null)
+        if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Client>? cachedItems))
         {
-            return null;
+            Client client = cachedItems?.FirstOrDefault(x => x.ClientName.ToLower() == name.ToLower());
+            if (client != null)
+                return client;
         }
-        var clients = list.Select(ClientFactory.Map);
 
-        return clients;
+        _cache.Remove(_cacheKey_All);
+        var entities = await _clientRepository.GetAllAsync(
+            orderByDescending: false,
+            sortBy: x => x.ClientName,
+            filterBy: null,
+
+            i => i.ClientContactInformation,
+            i => i.Address,
+            i => i.Projects
+        );
+
+        var clients = entities.Select(ClientFactory.Map);
+        _cache.Set(_cacheKey_All, clients, TimeSpan.FromMinutes(10));
+
+        return clients.SingleOrDefault(x => x.ClientName.ToLower() == name.ToLower());
     }
 }

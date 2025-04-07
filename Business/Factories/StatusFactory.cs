@@ -15,6 +15,7 @@ namespace Business.Factories
             {
                 Id = entity.Id,
                 StatusName = entity.StatusName,
+              
             };
 
             return status;
