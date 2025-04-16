@@ -12,11 +12,16 @@ using Data.Contexts;
 using Data.Interfaces;
 using Data.Repositories;
 using Data.Seeders;
+using Domain.Handlers;
+using Domain.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
+using System.Reflection;
 using System.Text;
 using WebApi.Extensions.Middlewares;
 
@@ -53,8 +58,46 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddTransient<JwtTokenHandler>();
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
+// Standardiseat sätt att skriva API-dokumentation på.
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
+
+var azureConnString = builder.Configuration.GetConnectionString("AzureBlobStorage");
+var containerName = "images";
+builder.Services.AddScoped<IAzureFileHandler>(_ => new AzureFileHandler(azureConnString!, containerName));
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.EnableAnnotations();
+    options.ExampleFilters();
+
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v. 1.0",
+        Title = "Alpha BackOffice API Documentation",
+        Description = "Standard documentation for Alpha BackOffice portal"
+    });
+
+    var apiAdminScheme = new OpenApiSecurityScheme
+    {
+        Name = "X-ADM-API-KEY",
+        Description = "Admin Api-Key Required",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "ApiKeyScheme",
+        Reference = new OpenApiReference
+        {
+            Id = "AdminApiKey",
+            Type = ReferenceType.SecurityScheme,
+        }
+    };
+    options.AddSecurityDefinition("AdminApiKey", apiAdminScheme);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { apiAdminScheme, new List<string>() }
+    });
+});
+
+builder.Services.AddSwaggerExamplesFromAssemblyOf<Program>();
 
 builder.Services.AddAuthentication(x =>
 {
@@ -83,6 +126,24 @@ builder.Services.AddAuthentication(x =>
         ValidIssuer = issuer,
         ValidateAudience = false
     };
+
+    x.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            context.NoResult();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsync("{\"error\": \"Invalid token\"}");
+        },
+        OnChallenge = context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsync("{\"error\": \"Authentication needed\"}");
+        }
+    };
 });
 
 var app = builder.Build();
@@ -92,15 +153,21 @@ await SeedData.SetRolesAsync(app);
 
 app.MapOpenApi();
 app.UseSwagger();
-app.UseSwaggerUI(x => x.SwaggerEndpoint("/swagger/v1/swagger.json", "Alpha API"));
-app.UseRewriter(new RewriteOptions().AddRedirect("^$", "swagger"));
-app.UseHttpsRedirection();
-app.UseMiddleware<DefaultApiKeyMiddleware>();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Alpha_backend_API");
+    options.RoutePrefix = string.Empty;
+});
 
-// Vad användaren får komma åt
-app.UseAuthorization();
+app.UseHttpsRedirection();
+
+// För att validera att applikationen körs i en betrodd miljö med API-nyckel
+//app.UseMiddleware<DefaultApiKeyMiddleware>();
+
 // Vem användaren är (claims osv)
 app.UseAuthentication();
+// Vad användaren får komma åt
+app.UseAuthorization();
 
 app.MapControllers();
 app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

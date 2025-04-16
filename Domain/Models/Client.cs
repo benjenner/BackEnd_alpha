@@ -8,6 +8,9 @@ public class Client
     public DateTime? Created { get; set; }
     public DateTime? Modified { get; set; }
     public bool? IsActive { get; set; }
+
+    public string? Image { get; set; }
+
     public ClientContactInformation ClientContactInformation { get; set; } = new();
     public ClientAddress ClientAddress { get; set; } = new();
 }

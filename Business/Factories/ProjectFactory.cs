@@ -52,7 +52,6 @@ namespace Business.Factories
             }
             var projectEntity = new ProjectEntity
             {
-                Image = form.Image,
                 ProjectName = form.ProjectName,
                 Description = form.Description,
                 StartDate = form.StartDate,
@@ -79,7 +78,6 @@ namespace Business.Factories
             entity.Id = form.Id;
             entity.ClientId = form.ClientId;
             entity.StatusId = form.StatusId;
-            entity.Image = form.Image;
             entity.ProjectName = form.ProjectName;
             entity.Description = form.Description;
             entity.StartDate = form.StartDate;

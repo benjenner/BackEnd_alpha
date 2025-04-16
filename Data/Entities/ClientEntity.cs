@@ -14,8 +14,8 @@ public class ClientEntity
     public DateTime Modified { get; set; }
     public bool IsActive { get; set; }
 
-    // ClientEntity har en ContactInformationEntity samt en ClientAdressEntity.
-    // Dessa sätts till virtual för att möjliggöra lazy loading
+    public string? Image { get; set; }
+
     public virtual ClientContactInformationEntity ClientContactInformation { get; set; } = null!;
 
     public virtual ClientAddressEntity Address { get; set; } = null!;
