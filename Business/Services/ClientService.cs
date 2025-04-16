@@ -1,15 +1,18 @@
-﻿using Business.Factories;
+﻿using Authentication.Models;
+using Business.Factories;
 using Business.Interfaces;
 using Data.Interfaces;
 using Data.Repositories;
+using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Business.Services;
 
-public class ClientService(IClientRepository clientRepository, IMemoryCache cache) : IClientService
+public class ClientService(IClientRepository clientRepository, IMemoryCache cache, IAzureFileHandler filehandler) : IClientService
 {
     private readonly IClientRepository _clientRepository = clientRepository;
+    private readonly IAzureFileHandler _filehandler = filehandler;
     private readonly IMemoryCache _cache = cache;
     private const string _cacheKey_All = "Client_All";
 
@@ -24,6 +27,9 @@ public class ClientService(IClientRepository clientRepository, IMemoryCache cach
         try
         {
             var clientEntity = ClientFactory.Map(form);
+
+            var fileName = await _filehandler.UploadFileAsync(form.Image);
+            clientEntity.Image = fileName;
             var result = await _clientRepository.AddAsync(clientEntity);
             if (!result)
             {
@@ -51,6 +57,9 @@ public class ClientService(IClientRepository clientRepository, IMemoryCache cach
             {
                 var clientToUpdate = await _clientRepository.GetAsync(c => c.Id == form.Id);
                 var clientEntity = ClientFactory.Map(form, clientToUpdate);
+
+                var fileName = await _filehandler.UploadFileAsync(form.NewImage);
+                clientEntity.Image = fileName;
 
                 var result = await _clientRepository.UpdateAsync(clientEntity);
                 if (!result)

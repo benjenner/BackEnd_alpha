@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Domain.Models
 {
     public class ProjectRegistrationForm
     {
-        public string? Image { get; set; }
+        public IFormFile? Image { get; set; }
 
         [Required]
         public string ProjectName { get; set; } = null!;

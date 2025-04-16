@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,14 +10,14 @@ namespace Domain.Models
 {
     public class ClientUpdateForm
     {
-        //public IFormFile? Image { get; set; }
-
         [Required]
         public int Id { get; set; }
 
         public string ClientName { get; set; } = null!;
 
         public string Email { get; set; } = null!;
+
+        public IFormFile? NewImage { get; set; }
         public string Phone { get; set; } = null!;
         public string Reference { get; set; } = null!;
         public string BillingAddress { get; set; } = null!;

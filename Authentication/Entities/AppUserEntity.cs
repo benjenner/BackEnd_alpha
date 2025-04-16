@@ -18,6 +18,8 @@ namespace Authentication.Entities
         // Kommer alltid vara tom i databas, värde tilldelas när modell skapas upp
         public string? RoleName { get; set; }
 
+        public string? Image { get; set; }
+
         public AppUserAddressEntity? Address { get; set; }
     }
 }

@@ -6,18 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
-    // Authorize kräver att
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
+    [Produces("application/json")]
     [ApiController]
     public class ProjectsController(IProjectService projectService) : ControllerBase
     {
-        //   "[Authorize (Roles = "Admin")] " kan också sättas på separata metoder.
-
-        //   Om "[Authorize (Roles = "Admin")]" är satt på hela controllern
-        //   kan " [AllowAnonyoumus] " tillåta att en separat metod eller anrop ändå kan visas
-        //   trots att AppUser inte har admin som roll.
-
         private readonly IProjectService _projectService = projectService;
 
         // Post

@@ -1,14 +1,18 @@
-﻿using Business.Factories;
+﻿using Authentication.Entities;
+using Business.Factories;
 using Business.Interfaces;
 using Data.Interfaces;
+using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Business.Services
 {
-    public class ProjectService(IProjectRepository projectRepository, IMemoryCache cache) : IProjectService
+    public class ProjectService(IProjectRepository projectRepository, IMemoryCache cache, IAzureFileHandler filehandler) : IProjectService
     {
         private readonly IProjectRepository _projectRepository = projectRepository;
+        private readonly IAzureFileHandler _filehandler = filehandler;
+
         private readonly IMemoryCache _cache = cache;
         private const string _cacheKey_All = "Project_All";
 
@@ -23,6 +27,10 @@ namespace Business.Services
             try
             {
                 var projectEntity = ProjectFactory.Map(form);
+
+                var fileName = await _filehandler.UploadFileAsync(form.Image);
+                projectEntity.Image = fileName;
+
                 var result = await _projectRepository.AddAsync(projectEntity);
                 if (!result)
                 {
@@ -49,6 +57,9 @@ namespace Business.Services
                 {
                     var projectToUpdate = await _projectRepository.GetAsync(p => p.Id == form.Id);
                     var projectEntity = ProjectFactory.Map(form, projectToUpdate);
+
+                    var fileName = await _filehandler.UploadFileAsync(form.NewImage);
+                    projectEntity.Image = fileName;
 
                     var result = await _projectRepository.UpdateAsync(projectEntity);
                     if (!result)

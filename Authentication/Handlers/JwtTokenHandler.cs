@@ -17,26 +17,6 @@ public class JwtTokenHandler
         _configuration = configuration;
     }
 
-    // Metoden kräver en AppUser samt en sträng som kan vara null
-    // public string GenerateToken()
-    //{
-    // *var key* Token genereras
-
-    // *var claims* Ny lista av typen Claim.
-    //      NameIdentifier sätts till AppUser.id
-
-    //      Email sätts till AppUser.id ( ** TA BORT DENNA** )
-
-    // Om roll inte är tom, lägg till en ny claim med rollen
-
-    // ** var tokenDescriptor** skapar en ny SecurityTokenSecriptor
-
-    //      Skapar ett nytt subject sav typen ClaimsIdentity som sätts till claims
-    //      Token sätts giltlig i en timme
-    //      Skapar en ny SigningCredentials med hjälp av en enkrypterings-algoritm
-
-    // ** var tokenHandler ** sätts till JwtSecurityTokenHandler.
-    // ** var token ** här
     public string GenerateToken(AppUserEntity appUser, string? role = null)
     {
         try
@@ -50,7 +30,18 @@ public class JwtTokenHandler
         };
 
             if (role != null)
+            {
                 claims.Add(new Claim(ClaimTypes.Role, role));
+
+                if (role == "Admin")
+                {
+                    claims.Add(new Claim("apiKey", _configuration["SecretKeys:Admin"]!));
+                }
+                else
+                {
+                    claims.Add(new Claim("apiKey", _configuration["SecretKeys:Default"]!));
+                }
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

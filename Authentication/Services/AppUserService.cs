@@ -3,10 +3,13 @@ using Authentication.Factories;
 using Authentication.Handlers;
 using Authentication.Interfaces;
 using Authentication.Models;
+using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using System.IO.Enumeration;
 
 namespace Authentication.Services
 {
@@ -14,7 +17,9 @@ namespace Authentication.Services
         SignInManager<AppUserEntity> signManager,
         RoleManager<IdentityRole> roleManager,
         JwtTokenHandler jwtTokenHandler,
-        IMemoryCache cache
+        IAzureFileHandler filehandler,
+        IMemoryCache cache,
+        IConfiguration configuration
         ) : IAppUserService
 
     {
@@ -26,6 +31,10 @@ namespace Authentication.Services
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
 
         private readonly JwtTokenHandler _jwtTokenHandler = jwtTokenHandler;
+
+        private readonly IConfiguration _configuration = configuration;
+
+        private readonly IAzureFileHandler _filehandler = filehandler;
 
         private readonly IMemoryCache _cache = cache;
         private const string _cacheKey_All = "Project_All";
@@ -73,8 +82,15 @@ namespace Authentication.Services
                 {
                     var role = (await _userManager.GetRolesAsync(user)).First();
                     var token = _jwtTokenHandler.GenerateToken(user!, role);
-                    // Returnerar token
                     _cache.Remove(_cacheKey_All);
+
+                    var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+                    if (isAdmin)
+                    {
+                        var adminKey = _configuration["SecretKeys:Admin"]!;
+                        return TokenResult.Ok(token: token, isAdmin: true, adminKey: adminKey);
+                    }
                     return TokenResult.Ok(token: token);
                 }
                 else
@@ -82,7 +98,6 @@ namespace Authentication.Services
                     TokenResult.Unauthorized(error: "Wrong email or password");
                 }
             }
-
             return TokenResult.Unauthorized(error: "Wrong email or password");
         }
 
@@ -96,7 +111,9 @@ namespace Authentication.Services
 
             var appUserEntity = AppUserFactory.Map(form);
 
-            //                                                              Sätts till ett standard-lösen då fält saknas i gränssnittet.
+            var fileName = await _filehandler.UploadFileAsync(form.NewImage);
+            appUserEntity.Image = fileName;
+            //                                                                  Sätts till ett standard-lösen då fält saknas i gränssnittet.
             var identityResult = await _userManager.CreateAsync(appUserEntity, "StandardPassword123!");
             if (identityResult.Succeeded)
             {
@@ -148,7 +165,6 @@ namespace Authentication.Services
                 return ServiceResult.BadRequest();
             }
 
-            // var appUserToUpdate = await _userManager.FindByIdAsync(form.UserId);
             var appUserToUpdate = _userManager.Users.Include(x => x.Address).SingleOrDefault(x => x.Id == form.UserId);
             if (appUserToUpdate == null)
             {
@@ -156,6 +172,9 @@ namespace Authentication.Services
             }
 
             var appUser = AppUserFactory.Map(form, appUserToUpdate);
+
+            var fileName = await _filehandler.UploadFileAsync(form.NewImage);
+            appUser.Image = fileName;
 
             var result = await _userManager.UpdateAsync(appUser);
             if (result.Succeeded)
@@ -217,6 +236,37 @@ namespace Authentication.Services
             return users.SingleOrDefault(x => x.Id == id);
         }
 
+        // Funktion som hämtar samtliga roller via rolemanager
+        public async Task<IEnumerable<Role>> GetAllRolesAsync()
+        {
+            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Role>? cachedItems))
+            {
+                return cachedItems;
+            }
+
+            _cache.Remove(_cacheKey_All);
+
+            var entities = await _roleManager.Roles.ToListAsync();
+
+            var roles = entities.Select(RoleFactory.Map);
+            _cache.Set(_cacheKey_All, roles, TimeSpan.FromMinutes(10));
+
+            return roles;
+        }
+
+        public async Task<ServiceResult> SignOutAsync()
+        {
+            try
+            {
+                await _signInManager.SignOutAsync();
+                return ServiceResult.Ok();
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Failed(message: ex.Message);
+            }
+        }
+
         public async Task UpdateRole(AppUserEntity entity, UpdateUserForm form)
         {
             var roles = await _userManager.GetRolesAsync(entity);
@@ -238,24 +288,6 @@ namespace Authentication.Services
                     await _userManager.AddToRoleAsync(entity, "User");
                 }
             }
-        }
-
-        // Funktion som hämtar samtliga roller via rolemanager
-        public async Task<IEnumerable<Role>> GetAllRolesAsync()
-        {
-            if (_cache.TryGetValue(_cacheKey_All, out IEnumerable<Role>? cachedItems))
-            {
-                return cachedItems;
-            }
-
-            _cache.Remove(_cacheKey_All);
-
-            var entities = await _roleManager.Roles.ToListAsync();
-
-            var roles = entities.Select(RoleFactory.Map);
-            _cache.Set(_cacheKey_All, roles, TimeSpan.FromMinutes(10));
-
-            return roles;
         }
     }
 }

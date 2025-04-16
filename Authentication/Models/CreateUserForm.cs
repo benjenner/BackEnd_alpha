@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,8 @@ namespace Authentication.Models
         public string FirstName { get; set; } = null!;
 
         public string LastName { get; set; } = null!;
+
+        public IFormFile? NewImage { get; set; }
 
         public string JobTitle { get; set; } = null!;
 

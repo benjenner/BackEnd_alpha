@@ -13,6 +13,8 @@ namespace Authentication.Interfaces
     {
         Task<TokenResult> SignInAsync(SignInForm form);
 
+        Task<ServiceResult> SignOutAsync();
+
         Task<ServiceResult> SignUpAsync(UserRegistrationForm form);
 
         Task<ServiceResult> CreateAppUserAsync(CreateUserForm form);

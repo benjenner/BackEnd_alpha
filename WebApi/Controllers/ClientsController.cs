@@ -1,11 +1,16 @@
 ﻿using Business.Interfaces;
 using Business.Services;
 using Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using WebApi.Extensions.Attributes;
 
 namespace WebApi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
+    [Produces("application/json")]
     [ApiController]
     public class ClientsController(IClientService clientService) : ControllerBase
     {
@@ -13,6 +18,7 @@ namespace WebApi.Controllers
 
         // Post
         [HttpPost]
+        [UseAdminApiKey]
         public async Task<IActionResult> Create(ClientRegistrationForm form)
         {
             // Validerar mot modellen ClientRegistrationForm
@@ -26,6 +32,7 @@ namespace WebApi.Controllers
 
         // Put
         [HttpPut]
+        [UseAdminApiKey]
         public async Task<IActionResult> Update(ClientUpdateForm form)
         {
             if (!ModelState.IsValid)
@@ -38,6 +45,7 @@ namespace WebApi.Controllers
 
         // Delete
         [HttpDelete("{Id}")]
+        [UseAdminApiKey]
         public async Task<IActionResult> Delete(int Id)
         {
             var result = await _clientService.RemoveAsync(Id);
@@ -46,6 +54,7 @@ namespace WebApi.Controllers
 
         // Get
         [HttpGet]
+        [UseAdminApiKey]
         public async Task<IActionResult> GetAll()
         {
             var clients = await _clientService.GetAllClientsAsync();
@@ -59,6 +68,7 @@ namespace WebApi.Controllers
 
         // Get
         [HttpGet("{id}")]
+        [UseAdminApiKey]
         public async Task<IActionResult> GetClient(int id)
         {
             var client = await _clientService.GetClientByIdAsync(id);
@@ -72,6 +82,7 @@ namespace WebApi.Controllers
 
         // Get
         [HttpGet("name/{name}")]
+        [UseAdminApiKey]
         public async Task<IActionResult> GetClient(string name)
         {
             var client = await _clientService.GetClientByNameAsync(name);

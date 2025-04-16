@@ -1,4 +1,6 @@
-﻿namespace Authentication.Models
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Authentication.Models
 {
     public class UpdateUserForm
     {
@@ -7,6 +9,8 @@
         public string FirstName { get; set; } = null!;
 
         public string LastName { get; set; } = null!;
+
+        public IFormFile? NewImage { get; set; }
 
         public string Email { get; set; } = null!;
 
